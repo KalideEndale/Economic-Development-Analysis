@@ -1,0 +1,680 @@
+---
+title: "Project for Math and Stats"
+author: "Kalide Endale"
+date: "12/1/2021"
+output: html_document
+---
+
+```{r global_options, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+## R Markdown
+
+```{r}
+#packages i will need for project
+library(readr)
+library(tidyverse)
+library(dbplyr)
+library(viridis)
+library(usmap)
+library(modelr)
+library(plotly)
+
+```
+
+
+```{r}
+#import dataset
+dir01 <- "/Users/Kalide/Downloads/countries of the world.csv"
+path01 <- file.path(dir01)
+df01 <- read_csv(path01)
+```
+
+
+```{r}
+#Exploratory data analysis
+tibble(df01)
+summary(df01)
+```
+
+
+
+looks like there is a decent amount of climate, literacy, industry, service, and agriculture data missing. 
+```{r}
+#count number of NA's in file and visualize NAs
+missing.values <- df01 %>%
+  gather(key = "key", value = "val") %>%
+  mutate(is.missing = is.na(val)) %>%
+  group_by(key, is.missing) %>%
+  dplyr::summarise(num.missing = n()) %>%
+  filter(is.missing == T) %>%
+  select(-is.missing) %>%
+  arrange(desc(num.missing))
+
+
+#plot the chart of NAs
+missing.values %>%
+  ggplot() +
+  geom_bar(aes(x=reorder(key, +num.missing), y=num.missing, fill = key), 
+           stat = 'identity') + 
+  coord_flip() +
+  labs(x='variable', 
+       y="number of missing values", 
+       title='Visual of Missing Values') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + theme_minimal()
+```
+
+omit na's from df
+```{r}
+df02 <- na.omit(df01)
+
+#revised dataframe
+head(df02)
+```
+Correlation of variables
+
+
+The factors that correlate with GDP per capita the most are net migration, infant mortality, literacy (%), phones (per 1000), climate, Birthrate, agriculture, service
+```{r fig.width=10, fig.height=10}
+df02.cor <- subset(df02, select = -c(Country, Region))
+ggcorrplot::ggcorrplot(cor(df02.cor), tl.cex = 12) 
+```
+
+par(mfrow=c(6, 3))
+colnames <- dimnames(df03)[[2]]
+for (i in names(df03)) {
+    d <- density(df03[,i])
+    plot(d, type="n", main=colnames[i])
+    polygon(d, col="red", border="gray")
+}
+
+
+#gdp looks right skewed
+```{r}
+library(ggplot2)
+df02 %>%
+  keep(is.numeric) %>%                     # Keep only numeric columns
+  gather() %>%                             # Convert to key-value pairs
+  ggplot(aes(value)) +                     # Plot the values
+    facet_wrap(~ key, scales = "free") +   # In separate panels
+    geom_density()                         # as density
+```
+
+The relationship of each improved after log10 gdp per capita
+```{r}
+ggplot(data = df02.cor, 
+       aes(x = log10(`GDP ($ per capita)`),
+           y = `Net migration`)) +
+  geom_point() + 
+  geom_smooth() + geom_smooth(method = "lm", color = "red") +
+  labs(x = "log10 gdp per capita",
+       y = "Net migration", 
+       title = "Plot of gdp per capita and net migration")
+
+#-----
+ggplot(data = df02.cor, 
+       aes(x = log10(`GDP ($ per capita)`),
+           y = `Infant mortality (per 1000 births)`)) +
+  geom_point() + 
+  geom_smooth() + geom_smooth(method = "lm", color = "red") +
+  labs(x = "log10 gdp per capita",
+       y = "Infant mortality (per 1000 births)", 
+       title = "Plot of gdp per capita and Infant mortality (per 1000 births)")
+
+#-----
+ggplot(data = df02.cor, 
+       aes(x = log10(`GDP ($ per capita)`),
+           y = `Literacy (%)`)) +
+  geom_point() + 
+  geom_smooth() + geom_smooth(method = "lm", color = "red") +
+  labs(x = "log10 gdp per capita",
+       y = "Literacy (%)", 
+       title = "Plot of gdp per capita and Literacy (%)")
+
+#----- 
+ggplot(data = df02.cor, 
+       aes(x = log10(`GDP ($ per capita)`),
+           y = `Phones (per 1000)`)) +
+  geom_point() + 
+  geom_smooth() + geom_smooth(method = "lm", color = "red") +
+  labs(x = "log10 gdp per capita",
+       y = "Phones (per 1000)", 
+       title = "Plot of gdp per capita and Phones (per 1000)")
+
+#-----
+ggplot(data = df02.cor, 
+       aes(x = log10(`GDP ($ per capita)`),
+           y = Climate)) +
+  geom_point() + 
+  geom_smooth() + geom_smooth(method = "lm", color = "red") +
+  labs(x = "log10 gdp per capita",
+       y = "Climate", 
+       title = "Plot of gdp per capita and Climate")
+
+
+#-----
+ggplot(data = df02.cor, 
+       aes(x = log10(`GDP ($ per capita)`),
+           y = Birthrate)) +
+  geom_point() + 
+  geom_smooth() + geom_smooth(method = "lm", color = "red") +
+  labs(x = "log10 gdp per capita",
+       y = "Birthrate", 
+       title = "Plot of gdp per capita and Birthrate")
+
+#-----
+ggplot(data = df02.cor, 
+       aes(x = log10(`GDP ($ per capita)`),
+           y = Agriculture)) +
+  geom_point() + 
+  geom_smooth() + geom_smooth(method = "lm", color = "red") +
+  labs(x = "log10 gdp per capita",
+       y = "Agriculture", 
+       title = "Plot of gdp per capita and Agriculture")
+
+#-----
+ggplot(data = df02.cor, 
+       aes(x = log10(`GDP ($ per capita)`),
+           y = Service)) +
+  geom_point() + 
+  geom_smooth() + geom_smooth(method = "lm", color = "red") +
+  labs(x = "log10 gdp per capita",
+       y = "Service", 
+       title = "Plot of gdp per capita and Service")
+```
+
+
+```{r}
+#add logged data into dataframe
+df03 <- df02.cor
+df03$log10gdp_percapita <- log10(df03$`GDP ($ per capita)`)
+
+df03
+```
+re-run correlation
+```{r fig.width=10, fig.height=10}
+df03.cor <- subset(df03, select = -c(`GDP ($ per capita)`))
+ggcorrplot::ggcorrplot(cor(df03.cor), tl.cex = 12) 
+```
+So, the strongest correlator to log10gdp_percapita is phones (per 1000), then birth rate, then infant mortality (per 1000 births), then agriculture, then literacy (%), service
+
+
+```{r}
+correlation<-cor(df03.cor$log10gdp_percapita,df03.cor[, unlist(lapply(df03.cor, is.numeric))])
+t(correlation)
+```
+
+
+Build simple model
+```{r}
+lm01 <- lm(log10gdp_percapita ~ `Phones (per 1000)`, data = df03)
+
+summary(lm01)
+```
+
+
+```{r}
+#residuals look linear, no violation of model assumptions
+df03 %>%
+  add_residuals(lm01, "resid") %>%
+  ggplot(aes(sample=resid)) +
+  geom_qq() +
+  theme_minimal() +
+  labs(x = "Theoretical Quantiles", 
+       y = "Sample Quantilies", 
+       title = "QQ Plot: Standardized residuals" )
+
+# residuals look standardly distributed
+df03 %>%
+  add_residuals(lm01, "resid") %>%
+  ggplot(aes(x=resid)) +
+  geom_histogram(bins=20) +
+  labs(x="Residuals",
+       title = "Distribution of residuals") +
+  theme_minimal()
+```
+So, the strongest correlator to log10gdp_percapita is phones (per 1000), then birth rate, then infant mortality (per 1000 births), then agriculture, then literacy (%), service
+
+See if any other variable can be added to model
+```{r}
+#----- there is a clear negative relationship
+df03 %>%
+  add_residuals(lm01, "resid") %>%
+  ggplot(aes(x=Birthrate)) +
+  geom_point(aes(y=resid)) +
+  labs(x="Birthrate", 
+       y="Residuals",
+       title = "Residuals vs. Birthrate") +
+  theme_minimal()
+
+#----- there is a clear negative relationship 
+df03 %>%
+  add_residuals(lm01, "resid") %>%
+  ggplot(aes(x=`Infant mortality (per 1000 births)`)) +
+  geom_point(aes(y=resid)) +
+  labs(x="Infant mortality (per 1000 births)", 
+       y="Residuals",
+       title = "Residuals vs. Infant mortality (per 1000 births)") +
+  theme_minimal()
+
+#----- there is a clear negative relationship
+df03 %>%
+  add_residuals(lm01, "resid") %>%
+  ggplot(aes(x=Agriculture)) +
+  geom_point(aes(y=resid)) +
+  labs(x="Agriculture", 
+       y="Residuals",
+       title = "Residuals vs. Agriculture") +
+  theme_minimal()
+
+#----- looks like there is some sort of pattern but its weak. most of the residuals are concentrated in one area
+df03 %>%
+  add_residuals(lm01, "resid") %>%
+  ggplot(aes(x=`Literacy (%)`)) +
+  geom_point(aes(y=resid)) +
+  labs(x="Literacy (%)", 
+       y="Residuals",
+       title = "Residuals vs. Literacy (%)") +
+  theme_minimal()
+
+#------ doesn't look like it adds much to model
+df03 %>%
+  add_residuals(lm01, "resid") %>%
+  ggplot(aes(x=Service)) +
+  geom_point(aes(y=resid)) +
+  labs(x="Service", 
+       y="Residuals",
+       title = "Residuals vs. Service") +
+  theme_minimal()
+
+```
+Final simple model
+```{r}
+lm02 <- lm(log10gdp_percapita ~ `Phones (per 1000)` + `Infant mortality (per 1000 births)` , data = df03)
+
+summary(lm02)
+```
+
+the remaining varialbes all look random.
+```{r}
+#----- there is a clear negative relationship
+df03 %>%
+  add_residuals(lm02, "resid") %>%
+  ggplot(aes(x=Birthrate)) +
+  geom_point(aes(y=resid)) +
+  labs(x="Birthrate", 
+       y="Residuals",
+       title = "Residuals vs. Birthrate") +
+  theme_minimal()
+
+#----- there is a clear negative relationship
+df03 %>%
+  add_residuals(lm02, "resid") %>%
+  ggplot(aes(x=Agriculture)) +
+  geom_point(aes(y=resid)) +
+  labs(x="Agriculture", 
+       y="Residuals",
+       title = "Residuals vs. Agriculture") +
+  theme_minimal()
+
+#----- looks like there is some sort of pattern but its weak. most of the residuals are concentrated in one area
+df03 %>%
+  add_residuals(lm02, "resid") %>%
+  ggplot(aes(x=`Literacy (%)`)) +
+  geom_point(aes(y=resid)) +
+  labs(x="Literacy (%)", 
+       y="Residuals",
+       title = "Residuals vs. Literacy (%)") +
+  theme_minimal()
+
+#------ doesn't look like it adds much to model
+df03 %>%
+  add_residuals(lm02, "resid") %>%
+  ggplot(aes(x=Service)) +
+  geom_point(aes(y=resid)) +
+  labs(x="Service", 
+       y="Residuals",
+       title = "Residuals vs. Service") +
+  theme_minimal()
+
+```
+
+
+kitchen sink
+```{r}
+lm03 <- lm(log10gdp_percapita ~ ., data = df03.cor)
+
+step(lm03)
+```
+
+
+```{r}
+lm03 <- lm(log10gdp_percapita ~ `Net migration` + `Infant mortality (per 1000 births)` + 
+    `Phones (per 1000)` + `Arable (%)` + `Crops (%)` + `Other (%)` + 
+    Birthrate + Deathrate + Agriculture + Service, data = df03.cor)
+
+summary(lm03)
+
+extractAIC(lm03)
+```
+
+```{r}
+df03 %>%
+  add_residuals(lm03, "resid") %>%
+  ggplot(aes(sample=resid)) +
+  geom_qq() +
+  theme_minimal() +
+  labs(x = "Theoretical Quantiles", 
+       y = "Sample Quantilies", 
+       title = "QQ Plot: Standardized residuals" )
+```
+
+
+
+
+
+
+
+#------ 
+
+should i partiion data set first?
+```{r}
+set.seed(2)
+
+df04.cv <- crossv_kfold(df03.cor, k =10)
+df04.cv
+```
+preform cross validation
+```{r}
+cv_qda1 <- df04.cv %>%
+  mutate(
+    fit = purrr::map(train,
+                     ~lm(log10gdp_percapita ~ `Net migration` + `Infant mortality (per 1000 births)` + 
+    `Phones (per 1000)` + `Arable (%)` + `Crops (%)` + `Other (%)` + 
+    Birthrate + Deathrate + Agriculture + Service,
+                         data = .)),
+rmse = purrr::map2_dbl(fit, test, ~rmse(.x,.y)))
+
+cv_qda1
+```
+
+
+
+```{r}
+mean(cv_qda1$rmse)
+```
+
+build rmse function to compare rmse of models
+```{r}
+do_dataframe_cv1 <- function(formula) {
+  df04.cv %>%
+    mutate(fit = map(train, ~lm(formula, data = .)),
+           rmse = map2_dbl(fit, test, ~rmse(.x,.y))) %>%
+    summarize(cv_rmse = mean(rmse)) %>%
+    pull(cv_rmse)
+}
+```
+
+
+RMSE of simple model: lm(log10gdp_percapita ~ `Phones (per 1000)`, data = df03)
+```{r}
+do_dataframe_cv1(log10gdp_percapita ~ `Phones (per 1000)`)
+```
+
+
+RMSE of second model: lm(log10gdp_percapita ~ `Phones (per 1000)` + `Infant mortality (per 1000 births)`
+```{r}
+do_dataframe_cv1(log10gdp_percapita ~ `Phones (per 1000)` + `Infant mortality (per 1000 births)`)
+
+```
+
+
+RMSE of kitchen sink model: lm(log10gdp_percapita ~ `Net migration` + `Infant mortality (per 1000 births)` + 
+    `Phones (per 1000)` + `Arable (%)` + `Crops (%)` + `Other (%)` + 
+    Birthrate + Deathrate + Agriculture + Service, data = df03.cor)
+```{r}
+do_dataframe_cv1(log10gdp_percapita ~ `Net migration` + `Infant mortality (per 1000 births)` + 
+    `Phones (per 1000)` + `Arable (%)` + `Crops (%)` + `Other (%)` + 
+    Birthrate + Deathrate + Agriculture + Service)
+```
+
+
+
+greedy selection, start with creating a partion of dataset
+```{r}
+df05.cv <- resample_partition(df03.cor,
+                                    p=c(train=0.5,
+                                        valid=0.25,
+                                        test=0.25))
+
+df05.cv
+```
+
+In forward selection, we begin with an empty model (no candidate variables), and at each step, we add the variable that improves the model the most.
+```{r}
+step1 <- function(response, predictors, candidates, partition) {
+
+rhs <- paste0(paste0(predictors, collapse = "+"), "+", candidates)
+formulas <- lapply(paste0(response, "~", rhs), as.formula)
+rmses <- sapply(formulas,
+                function(fm) rmse(lm(fm, data = partition$train),
+                                  data = partition$valid))
+names(rmses) <- candidates
+attr(rmses, "best") <- rmses[which.min(rmses)]
+rmses
+}
+```
+
+initalize a variable for tracking out model
+```{r}
+model <- NULL
+
+```
+
+
+
+Population + `Area (sq. mi.)` + `Pop. Density (per sq. mi.)` + 
+    `Coastline (coast/area ratio)` + `Net migration` + `Infant mortality (per 1000 births)` + 
+    `Literacy (%)` + `Phones (per 1000)` + `Arable (%)` + `Crops (%)` + 
+    `Other (%)` + Climate + Birthrate + Deathrate + Agriculture + 
+    Industry + Service
+
+Step 1 (no variables): the best one, and the first one to be added as a predictor is 'log10(infant mortality rate (per 1,000 births))'; RMSE: 0.2654632 
+```{r}
+preds <- "1"
+cands <- c("Population", 
+           "`Area (sq. mi.)`", 
+           "`Pop. Density (per sq. mi.)`", 
+           " `Coastline (coast/area ratio)`", 
+           "`Net migration`","`Infant mortality (per 1000 births)`", 
+           "`Literacy (%)`", "`Phones (per 1000)`","`Arable (%)`",
+           "`Crops (%)`", "`Other (%)`","Climate","Birthrate",
+           "Deathrate","Agriculture","Industry","Service" )
+
+s1 <- step1("log10gdp_percapita", preds, cands, df05.cv)
+model <- c(model, attr(s1, "best"))
+
+s1
+```
+
+
+step 2 ()
+```{r}
+preds <- "`Phones (per 1000)`"
+cands <- c("Population", 
+           "`Area (sq. mi.)`", 
+           "`Pop. Density (per sq. mi.)`", 
+           " `Coastline (coast/area ratio)`", 
+           "`Net migration`","`Infant mortality (per 1000 births)`", 
+           "`Literacy (%)`","`Arable (%)`",
+           "`Crops (%)`", "`Other (%)`","Climate","Birthrate",
+           "Deathrate","Agriculture","Industry","Service" )
+
+s1 <- step1("log10gdp_percapita", preds, cands, df05.cv)
+model <- c(model, attr(s1, "best"))
+
+s1
+```
+
+
+```{r}
+preds <- c("`Phones (per 1000)`","Birthrate")
+cands <- c("Population", 
+           "`Area (sq. mi.)`", 
+           "`Pop. Density (per sq. mi.)`", 
+           " `Coastline (coast/area ratio)`", 
+           "`Net migration`","`Infant mortality (per 1000 births)`", 
+           "`Literacy (%)`","`Arable (%)`",
+           "`Crops (%)`", "`Other (%)`","Climate",
+           "Deathrate","Agriculture","Industry","Service" )
+
+s1 <- step1("log10gdp_percapita", preds, cands, df05.cv)
+model <- c(model, attr(s1, "best"))
+
+s1
+```
+
+
+```{r}
+preds <- c("`Phones (per 1000)`","Birthrate","Agriculture")
+cands <- c("Population", 
+           "`Area (sq. mi.)`", 
+           "`Pop. Density (per sq. mi.)`", 
+           " `Coastline (coast/area ratio)`", 
+           "`Net migration`","`Infant mortality (per 1000 births)`", 
+           "`Literacy (%)`","`Arable (%)`",
+           "`Crops (%)`", "`Other (%)`","Climate",
+           "Deathrate","Industry","Service" )
+
+s1 <- step1("log10gdp_percapita", preds, cands, df05.cv)
+model <- c(model, attr(s1, "best"))
+
+s1
+```
+
+
+```{r}
+preds <- c("`Phones (per 1000)`","Birthrate","Agriculture","`Net migration`")
+cands <- c("Population", 
+           "`Area (sq. mi.)`", 
+           "`Pop. Density (per sq. mi.)`", 
+           " `Coastline (coast/area ratio)`", 
+           "`Infant mortality (per 1000 births)`", 
+           "`Literacy (%)`","`Arable (%)`",
+           "`Crops (%)`", "`Other (%)`","Climate",
+           "Deathrate","Industry","Service" )
+
+s1 <- step1("log10gdp_percapita", preds, cands, df05.cv)
+model <- c(model, attr(s1, "best"))
+
+s1
+```
+
+
+```{r}
+preds <- c("`Phones (per 1000)`","Birthrate","Agriculture","`Net migration`","Service")
+cands <- c("Population", 
+           "`Area (sq. mi.)`", 
+           "`Pop. Density (per sq. mi.)`", 
+           " `Coastline (coast/area ratio)`", 
+           "`Infant mortality (per 1000 births)`", 
+           "`Literacy (%)`","`Arable (%)`",
+           "`Crops (%)`", "`Other (%)`","Climate",
+           "Deathrate","Industry")
+
+s1 <- step1("log10gdp_percapita", preds, cands, df05.cv)
+model <- c(model, attr(s1, "best"))
+
+s1
+```
+
+
+```{r}
+preds <- c("`Phones (per 1000)`","Birthrate","Agriculture","`Net migration`","Service","Industry")
+cands <- c("Population", 
+           "`Area (sq. mi.)`", 
+           "`Pop. Density (per sq. mi.)`", 
+           " `Coastline (coast/area ratio)`", 
+           "`Infant mortality (per 1000 births)`", 
+           "`Literacy (%)`","`Arable (%)`",
+           "`Crops (%)`", "`Other (%)`","Climate",
+           "Deathrate")
+
+s1 <- step1("log10gdp_percapita", preds, cands, df05.cv)
+model <- c(model, attr(s1, "best"))
+
+s1
+```
+
+
+```{r}
+preds <- c("`Phones (per 1000)`","Birthrate","Agriculture","`Net migration`","Service","Industry","`Pop. Density (per sq. mi.)`")
+cands <- c("Population", 
+           "`Area (sq. mi.)`", 
+           " `Coastline (coast/area ratio)`", 
+           "`Infant mortality (per 1000 births)`", 
+           "`Literacy (%)`","`Arable (%)`",
+           "`Crops (%)`", "`Other (%)`","Climate",
+           "Deathrate")
+
+s1 <- step1("log10gdp_percapita", preds, cands, df05.cv)
+model <- c(model, attr(s1, "best"))
+
+s1
+```
+
+
+cut off model at net migration
+```{r}
+step_model <- tibble(index = seq_along(model),
+                     variable = factor(names(model), levels = names(model)),
+                     RMSE=model)
+
+
+ggplot(step_model, aes(y = RMSE)) +
+  geom_point(aes(x=variable)) +
+  geom_line(aes(x=index)) +
+  labs(title = "Stepwise Model Selection Plot", 
+       x = "Predictor Variables") +
+  theme_classic() +
+  theme(axis.text.x = element_text(color = "black", 
+                                   size = 9, angle=30,
+                                   vjust=.8, hjust=0.8)) 
+
+```
+
+
+```{r}
+set.seed(4)
+fit_cv_t2 <- lm(log10gdp_percapita ~ `Phones (per 1000)` + 
+                  Birthrate +
+                  Agriculture + `Net migration`,
+                data=df05.cv$train)
+
+rmse(fit_cv_t2, df05.cv$test)
+```
+
+
+
+best predictive model for gdp per capita
+```{r}
+do_dataframe_cv1(log10gdp_percapita ~ `Phones (per 1000)` + 
+                  Birthrate +
+                  Agriculture + `Net migration`)
+```
+
+final model
+```{r}
+lm04 <- lm(log10gdp_percapita ~ `Phones (per 1000)` + 
+                  Birthrate +
+                  Agriculture + `Net migration`,
+                data=df03.cor)
+summary(lm04)
+```
+
+
+```{r}
+#remaining things to do: add notations to code chunks, do simple visualization for presentation,kint 
+```
+
